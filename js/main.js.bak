@@ -1,0 +1,1129 @@
+document.addEventListener('DOMContentLoaded', function() {
+  // DOM elementlerini seçme
+  const body = document.body;
+  const header = document.querySelector('header');
+  const mobileMenuToggle = document.querySelector('.menu-toggle');
+  const mobileMenu = document.querySelector('.mobile-menu');
+  const closeMenu = document.querySelector('.close-menu');
+  const navLinks = document.querySelectorAll('.nav-links a');
+  const scrollTop = document.querySelector('.scroll-top');
+  const solutionCards = document.querySelectorAll('.solution-card');
+  const projectCards = document.querySelectorAll('.project-card');
+  const partnerLogos = document.querySelectorAll('.partner-logo');
+  const statisticsSection = document.getElementById('about');
+  const statNumbers = document.querySelectorAll('.stat-number');
+  const contactForm = document.getElementById('contact-form');
+  const modal = document.getElementById('project-detail-modal');
+  const closeModal = document.querySelector('.close-modal');
+  
+  // Proje incele butonları için olay dinleyicileri
+  document.querySelectorAll('.project-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const projectId = this.getAttribute('data-project-id') || 
+                        (this.getAttribute('onclick')?.match(/'([^']+)'/) ? 
+                        this.getAttribute('onclick').match(/'([^']+)'/)[1] : null);
+      
+      if (projectId) {
+        showProjectDetail(projectId, e);
+      }
+    });
+  });
+
+  // Modal kapama düğmesi
+  const closeModalButton = document.querySelector('.close-modal');
+  if (closeModalButton) {
+    closeModalButton.addEventListener('click', function() {
+      document.getElementById('project-detail-modal').style.display = 'none';
+      // Body'nin scroll'unu tekrar aktif et
+      document.body.style.overflow = 'auto';
+    });
+  }
+
+  // Modal dışına tıklayınca kapanma
+  window.addEventListener('click', function(e) {
+    const modal = document.getElementById('project-detail-modal');
+    if (e.target == modal) {
+      modal.style.display = 'none';
+      // Body'nin scroll'unu tekrar aktif et
+      document.body.style.overflow = 'auto';
+    }
+  });
+  
+  // Sayfa yüklendiğinde projelerdeki boş resimlere logo ekle
+  setupProjectImages();
+  
+  // Devam eden projelere "İncele" butonu ekle
+  setupOngoingProjects();
+  
+  // Sayfa yüklendiğinde animasyonları başlat
+  animateNetworkBackground();
+  setupAboutBackground();
+  addAnimationStyles();
+  
+  // Mobile menü toggle
+  mobileMenuToggle.addEventListener('click', function() {
+    mobileMenu.classList.add('active');
+    body.style.overflow = 'hidden'; // Sayfa kaydırmayı engelle
+  });
+  
+  // Mobile menü kapatma
+  closeMenu.addEventListener('click', function() {
+    mobileMenu.classList.remove('active');
+    body.style.overflow = 'visible'; // Sayfa kaydırmayı etkinleştir
+  });
+  
+  // Scroll olayları
+  window.addEventListener('scroll', function() {
+    // Header stili güncelleme
+    if(window.scrollY > 100) {
+      header.classList.add('scrolled');
+    } else {
+      header.classList.remove('scrolled');
+    }
+    
+    // Aktif navigasyon bağlantılarını güncelleme
+    updateActiveLinks();
+    
+    // Yukarı kaydırma butonu görünürlüğü
+    if(scrollTop && window.scrollY > 300) {
+      scrollTop.classList.add('active');
+    } else if(scrollTop) {
+      scrollTop.classList.remove('active');
+    }
+    
+    // Animasyonları tetikleme
+    animateOnScroll();
+    
+    // İstatistikleri başlat
+    animateCounters();
+  });
+  
+  // Aktif menü linklerini güncelleme fonksiyonu
+  function updateActiveLinks() {
+    const sections = document.querySelectorAll('section');
+    const scrollPosition = window.scrollY + 150;
+    
+    sections.forEach(section => {
+      const sectionTop = section.offsetTop;
+      const sectionHeight = section.offsetHeight;
+      const sectionId = section.getAttribute('id');
+      
+      if(scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+        navLinks.forEach(link => {
+          link.classList.remove('active');
+          if(link.getAttribute('href') === `#${sectionId}`) {
+            link.classList.add('active');
+          }
+        });
+      }
+    });
+  }
+  
+  // Navigasyon bağlantıları için smooth scroll
+  navLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      const targetId = this.getAttribute('href');
+      if(targetId.startsWith('#')) {
+        const targetElement = document.querySelector(targetId);
+        if(targetElement) {
+          // Mobile menüyü kapat
+          if(mobileMenu.classList.contains('active')) {
+            mobileMenu.classList.remove('active');
+            body.style.overflow = 'visible';
+          }
+          
+          // Hedef elemana smooth scroll
+          window.scrollTo({
+            top: targetElement.offsetTop - 80,
+            behavior: 'smooth'
+          });
+        }
+      }
+    });
+  });
+  
+  // Çözüm kartları için hover efekti
+  solutionCards.forEach(card => {
+    card.addEventListener('mouseenter', function() {
+      const icon = this.querySelector('.solution-icon i');
+      icon.classList.add('fa-spin');
+      
+      // Logo animasyonları
+      setTimeout(() => {
+        icon.classList.remove('fa-spin');
+      }, 500);
+    });
+    
+    card.addEventListener('mouseleave', function() {
+      const icon = this.querySelector('.solution-icon i');
+      icon.classList.remove('fa-spin');
+    });
+  });
+  
+  // Proje kartları için özel efektler
+  projectCards.forEach(card => {
+    card.addEventListener('mouseenter', function() {
+      this.querySelector('.project-overlay').style.opacity = '1';
+      this.querySelector('img').style.transform = 'scale(1.05)';
+    });
+    
+    card.addEventListener('mouseleave', function() {
+      this.querySelector('.project-overlay').style.opacity = '0';
+      this.querySelector('img').style.transform = 'scale(1)';
+    });
+  });
+  
+  // İletişim formu submit
+  if(contactForm) {
+    contactForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const submitBtn = this.querySelector('.submit-btn');
+      const formData = new FormData(this);
+      
+      // Submit butonunu devre dışı bırak
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Gönderiliyor...';
+      
+      fetch(this.action, {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Submit butonunu etkinleştir
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Mesaj Gönder';
+        
+        if(data.success) {
+          showFormMessage('Mesajınız başarıyla gönderildi! Size en kısa sürede dönüş yapacağız.', 'success');
+          contactForm.reset(); // Formu temizle
+        } else {
+          showFormMessage('Mesajınız gönderilirken bir hata oluştu: ' + data.message, 'error');
+        }
+      })
+      .catch(error => {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Mesaj Gönder';
+        showFormMessage('Bir hata oluştu. Lütfen daha sonra tekrar deneyin.', 'error');
+        console.error('Error:', error);
+      });
+    });
+  }
+  
+  // İstatistik sayaçları animasyonu
+  let counterStarted = false;
+  
+  function animateCounters() {
+    if(!counterStarted && isElementInViewport(statisticsSection)) {
+      counterStarted = true;
+      
+      statNumbers.forEach(counter => {
+        const target = counter.innerText;
+        const hasPlusSign = target.includes('+');
+        const hasPercentSign = target.includes('%');
+        const numTarget = parseInt(target.replace(/[^0-9]/g, ''));
+        
+        let count = 0;
+        const duration = 2000; // ms cinsinden animasyon süresi
+        const interval = Math.floor(duration / numTarget);
+        
+        counter.innerText = '0' + (hasPercentSign ? '%' : '') + (hasPlusSign ? '+' : '');
+        
+        const timer = setInterval(() => {
+          count++;
+          counter.innerText = count + (hasPercentSign ? '%' : '') + (hasPlusSign ? '+' : '');
+          
+          if(count >= numTarget) {
+            clearInterval(timer);
+          }
+        }, interval);
+      });
+    }
+  }
+  
+  // Element görünür alanda mı kontrolü
+  function isElementInViewport(el) {
+    const rect = el.getBoundingClientRect();
+    return (
+      rect.top <= window.innerHeight &&
+      rect.bottom >= 0
+    );
+  }
+  
+  // Scroll animasyonları
+  function animateOnScroll() {
+    const elements = document.querySelectorAll('.solution-card, .project-card, .stat-item, .section-header, .about-text, .about-image');
+    
+    elements.forEach(element => {
+      const elementTop = element.getBoundingClientRect().top;
+      const elementBottom = element.getBoundingClientRect().bottom;
+      
+      if(elementTop < window.innerHeight - 100 && elementBottom > 0) {
+        element.classList.add('animate');
+      }
+    });
+  }
+  
+  // CSS animasyon stillerini ekle
+  addAnimationStyles();
+  
+  // Animasyon CSS stilleri ekleme
+  function addAnimationStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeIn {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+      
+      @keyframes fadeOut {
+        0% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 0; transform: translateY(-20px); }
+      }
+      
+      .animate {
+        animation: fadeIn 0.8s ease-out forwards;
+      }
+      
+      .solution-card, .project-card, .stat-item, .section-header, .about-text, .about-image {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.8s, transform 0.8s;
+      }
+      
+      .solution-card.animate, .project-card.animate, .stat-item.animate, .section-header.animate, .about-text.animate, .about-image.animate {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      
+      .partner-logo {
+        transition: all 0.5s ease;
+      }
+      
+      .partner-logo:hover {
+        transform: translateY(-10px) scale(1.1) !important;
+      }
+      
+      .project-card:hover .project-overlay {
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+      }
+      
+      .project-overlay {
+        transform: translateY(10px);
+        transition: all 0.4s ease-in-out !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // İlk yüklemede animasyonları başlat
+  setTimeout(() => {
+    animateOnScroll();
+    animateCounters();
+  }, 500);
+
+  // Proje detaylarını gösterme
+  function getProjectData(projectId) {
+    // Proje verileri
+    const projectsData = {
+      'project1': {
+        title: 'OSTİMOSB Gelir Tahmin Algoritması',
+        image: 'images/projects/project1.jpg',
+        description: 'OSTİMOSB için geliştirdiğimiz gelir tahmin algoritması, eldeki verilere dayanarak ileriye dönük gelir tahminleri yapıyor. Makine öğrenmesi ve AI teknolojilerimizle tahmin doğruluk oranını %96\'ya çıkardık. Müşterimiz 5 yıllık projeksiyon içerisinde gelirlerini optimize etme fırsatı yakaladı.',
+        technologies: ['Tensorflow', 'Python', 'AI/ML', 'Yapay Sinir Ağları', 'Zaman Serisi Analizi'],
+        results: [
+          { number: '%96', text: 'Tahmin Doğruluk Oranı' },
+          { number: '12', text: 'Analiz Edilen Veri Kaynağı' },
+          { number: '%38', text: 'Gelir Optimizasyonu' }
+        ]
+      },
+      'project2': {
+        title: '102 Milyon Veri Analizi ve Tahminleme',
+        image: 'images/projects/project2.jpg',
+        description: '102 milyon veriyi analiz ederek, büyük veri işleme ve makine öğrenmesi ile tahminleme algoritması geliştirdik. Dağıtık sistemler üzerinde çalışan algoritmalarımız sayesinde, finansal hizmetler sektöründeki müşterimize gerçek zamanlı iş zekası raporları sunuyoruz.',
+        technologies: ['Hadoop', 'Spark', 'BigData', 'Dağıtık Hesaplama', 'Python', 'AI/ML'],
+        results: [
+          { number: '102M+', text: 'İşlenen Veri Hacmi' },
+          { number: '%92', text: 'Tahmin Doğruluğu' },
+          { number: '%75', text: 'İşlem Hızı Artışı' }
+        ]
+      },
+      'project3': {
+        title: 'Fabrika Güvenlik Ekipmanı Tespit Sistemi',
+        image: 'images/projects/project3.jpg',
+        description: 'Fabrikadaki çalışanların kask ve yelek takıp takmadığını tespit eden görüntü işleme tabanlı sistem geliştirdik. 20.000 veri ile eğitilen modellerimiz, iş güvenliğini artırarak kaza risklerini %65 azalttı. Sistem 7/24 çalışarak anlık uyarılar üretiyor.',
+        technologies: ['OpenCV', 'YOLO', 'Derin Öğrenme', 'Bilgisayarlı Görü', 'Nesne Tespiti', 'Edge Computing'],
+        results: [
+          { number: '%65', text: 'Kaza Riski Azalması' },
+          { number: '20B+', text: 'Eğitim Veri Seti' },
+          { number: '%98', text: 'Tespit Doğruluğu' }
+        ]
+      },
+      'project4': {
+        title: 'AIVA Toplantı Analiz Asistanı',
+        image: 'images/projects/project4.jpg',
+        description: 'AIVA ile toplantılara yerleştirilen ses algılayıcılar konuşmaları analiz ederek gerekli çıkarımları yapar ve özetler oluşturur. NLP teknolojileri kullanarak geliştirdiğimiz bu sistem, toplantı notlarını ilgili kişilere otomatik olarak dağıtarak verimlilik artışı sağlar.',
+        technologies: ['Doğal Dil İşleme', 'Ses Tanıma', 'AI', 'Konuşma Analizi', 'Otomatik Not Alma'],
+        results: [
+          { number: '%45', text: 'Verimlilik Artışı' },
+          { number: '%94', text: 'Özet Doğruluğu' },
+          { number: '2.5 saat', text: 'Haftalık Kazanılan Zaman' }
+        ]
+      },
+      'project5': {
+        title: 'AI İK Uzmanı ve Mülakat Sistemi',
+        image: 'images/projects/project5.jpg',
+        description: 'CV analizini AI ile gerçekleştiren, adaya özel sorular oluşturan ve video mülakat yapan sistem geliştirdik. Yapay zeka destekli İK çözümümüz, adayın bilgilerine göre kapsamlı analizler yaparak yöneticiye detaylı raporlar sunuyor ve işe alım sürecini optimize ediyor.',
+        technologies: ['Derin Öğrenme', 'NLP', 'Video Analizi', 'Duygu Analizi', 'CV Tarama Otomasyonu'],
+        results: [
+          { number: '%70', text: 'İşe Alım Süresi Azalması' },
+          { number: '%62', text: 'Maliyet Tasarrufu' },
+          { number: '%88', text: 'İşe Alım Doğruluğu' }
+        ]
+      },
+      'project6': {
+        title: 'FASTY Su Üstü Tespit Sistemi',
+        image: 'images/projects/project6.jpg',
+        description: 'FASTY su üstü kurtarma botuna entegre ettiğimiz kamera sistemi, yapay zeka ile su üstündeki kişi ve nesnelerin tespitini gerçek zamanlı yaparak acil durumlarda bildirim gönderiyor, böylece can kurtarma operasyonları daha hızlı ve etkili hale geliyor.',
+        technologies: ['Bilgisayarlı Görü', 'Gerçek Zamanlı Analiz', 'Derin Öğrenme', 'Nesne Tespiti', 'Akıllı Alarm Sistemi'],
+        results: [
+          { number: '%82', text: 'Hızlı Tespit Oranı' },
+          { number: '8 sn', text: 'Ortalama Tespit Süresi' },
+          { number: '%95', text: 'Zorlu Hava Koşullarında Başarı' }
+        ]
+      },
+      'project7': {
+        title: 'AI Destekli ERP Yazılımı',
+        image: 'images/projects/project7.jpg',
+        description: 'Yapay zeka ile güçlendirilmiş ERP yazılımımız, işletmelerin tüm süreçlerini otomatikleştirerek verimliliği artırır. Geliştirdiğimiz sistem, ileri analitik yetenekleri sayesinde iş süreçlerindeki darboğazları tespit eder ve iyileştirme önerileri sunar.',
+        technologies: ['Makine Öğrenmesi', 'Veri Analizi', 'Süreç Optimizasyonu', 'Yazılım Geliştirme', 'İş Zekası'],
+        results: [
+          { number: '%43', text: 'Süreç Verimliliği' },
+          { number: '%35', text: 'Operasyonel Maliyet Düşüşü' },
+          { number: '%67', text: 'İş Gücü Tasarrufu' }
+        ]
+      },
+      'project8': {
+        title: 'Financial Dashboard',
+        image: 'images/projects/project8.jpg',
+        description: 'Kullanıcıya özel geliştirilen finansal dashboard, gelir-gider takibi, döviz bilgileri, yatırım portföyü ve nakit akışı projeksiyonları gibi kritik finansal verileri gerçek zamanlı olarak sunar. Yapay zeka destekli tahminleme algoritması ile gelecek dönem finansal öngörüleri yüksek doğrulukla sağlar.',
+        technologies: ['Veri Analizi', 'Fintech', 'Dashboard Tasarımı', 'Makine Öğrenmesi', 'Finansal Projeksiyonlar'],
+        results: [
+          { number: '%92', text: 'Tahmin Doğruluğu' },
+          { number: '15+', text: 'Finansal Veri Kaynağı' },
+          { number: '%54', text: 'Finansal Planlama İyileştirmesi' }
+        ]
+      },
+      'project9': {
+        title: 'Çimento Firması AI Chatbot',
+        image: 'images/projects/project9.jpg',
+        description: 'Çimento sektöründe faaliyet gösteren firma için müşteri hizmetleri ve teknik destek süreçlerini otomatikleştiren yapay zeka destekli chatbot geliştirdik. Sistem ürün bilgisi, sipariş takibi ve teknik sorunlar konusunda yüksek doğrulukla yanıt vererek müşteri memnuniyetini artırıyor.',
+        technologies: ['NLP', 'Chatbot', 'Yapay Zeka', 'Derin Öğrenme', 'Makine Öğrenmesi', 'Konuşma Arayüzleri'],
+        results: [
+          { number: '%92', text: 'Yanıt Doğruluğu' },
+          { number: '%78', text: 'Müşteri Memnuniyeti Artışı' },
+          { number: '%60', text: 'Destek Maliyeti Azalması' }
+        ]
+      },
+      'project10': {
+        title: 'Otomatik İçerik Oluşturma ve Sosyal Medya Otomasyonu',
+        image: 'images/projects/project10.jpg',
+        description: 'Şirketler için yapay zeka tabanlı içerik oluşturma ve sosyal medya yönetim sistemi geliştirdik. Platform, otomatik LinkedIn ve diğer sosyal medya paylaşımları, özelleştirilmiş e-mail kampanyaları, ve kişiselleştirilmiş içerik üretimi sağlayarak pazarlama ekiplerinin verimliliğini artırdı.',
+        technologies: ['NLP', 'İçerik Oluşturma', 'Sosyal Medya API', 'GPT Modelleri', 'Makine Öğrenmesi', 'Automatik Pazarlama'],
+        results: [
+          { number: '%78', text: 'Pazarlama Verimliliği Artışı' },
+          { number: '%65', text: 'İçerik Üretim Süresi Azalması' },
+          { number: '3.5x', text: 'Etkileşim Oranı Artışı' }
+        ]
+      },
+      // Devam eden projeler
+      'ongoing-pool': {
+        title: 'Havuz Güvenlik Sistemi',
+        image: 'images/projects/ongoing-pool.jpg',
+        description: 'Havuzlardaki kişilerin düşme ve boğulma tespitini yapan yapay zeka destekli güvenlik sistemi geliştiriyoruz. Sistem, sürekli olarak havuz yüzeyini ve altını izleyerek olağandışı hareketleri tespit ediyor ve tehlike anında anında otomatik bildirim göndererek acil müdahale imkanı sağlıyor. Bu projeyle birlikte halka açık yüzme havuzları, oteller ve aquaparklar için can güvenliğini artırmayı hedefliyoruz.',
+        technologies: ['Bilgisayarlı Görü', 'YOLO', 'Derin Öğrenme', 'Gerçek Zamanlı İzleme', 'Otonom Alarm Sistemi', 'Su Altı Kameraları'],
+        results: [
+          { number: '%94', text: 'Tespit Doğruluğu (Test Ortamında)' },
+          { number: '%60', text: 'Tamamlanma Oranı' },
+          { number: '3 sn', text: 'Ortalama Tepki Süresi' }
+        ]
+      },
+      'ongoing-call': {
+        title: 'AI Call Center',
+        image: 'images/projects/ongoing-call.jpg',
+        description: 'Gelen aramaları otomatik açan, doğal dilde konuşan ve gerektiğinde arama yapan tamamen otomatik çağrı merkezi çözümü. Kullanıcılar özel bir dashboard üzerinden taleplerini yazabilir ve sistem otomatik olarak gerekli yerleri arayarak randevu oluşturma, bilgi alma ve sorun çözme gibi işlemleri yapay zeka teknolojisi ile gerçekleştirir. Bu çözüm sayesinde işletmeler çağrı merkezi maliyetlerini azaltırken müşteri memnuniyetini artırabilecek.',
+        technologies: ['Doğal Dil İşleme', 'Ses Tanıma', 'Yapay Zeka', 'VOIP Entegrasyonu', 'Otomatik Randevu Sistemi', 'Duygu Analizi'],
+        results: [
+          { number: '%75', text: 'Tamamlanma Oranı' },
+          { number: '%90', text: 'Konuşma Anlama Doğruluğu' },
+          { number: '%85', text: 'Müşteri Memnuniyeti (Test Grubunda)' }
+        ]
+      }
+    };
+    
+    // İstenen proje ID'sine göre veriyi döndür
+    return projectsData[projectId];
+  }
+
+  function showProjectDetail(projectId, event) {
+    // Sayfanın yeniden yüklenmesini engelle
+    if (event) event.preventDefault();
+    
+    const projectData = getProjectData(projectId);
+    if (!projectData) {
+      console.error('Proje bulunamadı: ' + projectId);
+      return;
+    }
+    
+    const modal = document.getElementById('project-detail-modal');
+    const content = document.getElementById('project-detail-content');
+    
+    // Modal içeriğini oluştur
+    content.innerHTML = `
+      <div class="project-detail-header">
+        <h2>${projectData.title}</h2>
+      </div>
+      <div class="project-detail-info">
+        <div class="project-detail-image">
+          <img src="${projectData.image}" alt="${projectData.title}" onerror="this.src='duftech-logo-final.svg'; this.style.padding='20px'; this.style.background='white'; this.style.borderRadius='10px';">
+        </div>
+        <div class="project-detail-content">
+          <div class="project-detail-description">
+            <p>${projectData.description}</p>
+          </div>
+          <div class="project-detail-features">
+            <h4>Kullanılan Teknolojiler</h4>
+            <ul>
+              ${projectData.technologies.map(tech => `<li>${tech}</li>`).join('')}
+            </ul>
+          </div>
+          <div class="project-detail-results">
+            <h4>Sonuçlar</h4>
+            <div class="results-grid">
+              ${projectData.results.map(result => `
+                <div class="result-item">
+                  <div class="result-number">${result.number}</div>
+                  <div class="result-text">${result.text}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Modalı göster
+    modal.style.display = 'block';
+    
+    // Body'nin scroll'unu engelle
+    document.body.style.overflow = 'hidden';
+    
+    console.log('Proje detayı gösteriliyor: ' + projectId);
+  }
+
+  // Devam eden projelere "İncele" butonu ekle
+  function setupOngoingProjects() {
+    const ongoingProjects = document.querySelector('.ongoing-projects');
+    if (!ongoingProjects) return;
+    
+    // Devam eden projelerin div'lerini seç
+    const projectDivs = ongoingProjects.querySelectorAll('div[id*="ongoing-"]');
+    
+    // Her bir projeye "İncele" butonu ekle
+    projectDivs.forEach((div, index) => {
+      // Proje başlığını al (varsa)
+      const titleElement = div.querySelector('h4[style*="color: var(--primary-font-color)"]');
+      const title = titleElement ? titleElement.textContent : 'Proje ' + (index + 1);
+      
+      // Proje ID'sini belirle
+      const projectId = div.id.replace('-project', '');
+      
+      // İncele butonunu oluştur
+      const inceleBtn = document.createElement('a');
+      inceleBtn.href = 'javascript:void(0)';
+      inceleBtn.textContent = 'İncele';
+      inceleBtn.style.display = 'inline-block';
+      inceleBtn.style.marginTop = '15px';
+      inceleBtn.style.padding = '8px 20px';
+      inceleBtn.style.background = 'linear-gradient(45deg, var(--primary-color), var(--secondary-color))';
+      inceleBtn.style.color = 'white';
+      inceleBtn.style.borderRadius = '25px';
+      inceleBtn.style.fontWeight = 'bold';
+      inceleBtn.style.textDecoration = 'none';
+      inceleBtn.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+      inceleBtn.style.transition = 'all 0.3s ease';
+      
+      // Hover efekti
+      inceleBtn.onmouseover = function() {
+        this.style.transform = 'translateY(-3px)';
+        this.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
+      };
+      inceleBtn.onmouseout = function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+      };
+      
+      // Tıklama olayı ekle
+      inceleBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        showProjectDetail(projectId, e);
+      });
+      
+      // Butonu div'in sonuna ekle
+      div.appendChild(inceleBtn);
+    });
+    
+    console.log('Devam eden projelere İncele butonları eklendi');
+  }
+
+  // Neural network arkaplan animasyonu için
+  function animateNetworkBackground() {
+    const neuralBg = document.querySelector('.neural-network-bg');
+    if (!neuralBg) return;
+    
+    window.addEventListener('scroll', function() {
+      const scrollY = window.scrollY;
+      const rotationDegree = scrollY * 0.02; // Scroll miktarına göre döndürme oranı
+      const scale = 1 + (scrollY * 0.0005); // Scroll miktarına göre büyütme oranı
+      
+      neuralBg.style.transform = `rotate(${rotationDegree}deg) scale(${scale})`;
+      neuralBg.style.opacity = 0.3 + (scrollY * 0.0002); // Scroll miktarına göre opaklık değişimi
+    });
+  }
+  
+  // Hakkımızda bölümü arkaplan geçişi için
+  function setupAboutBackground() {
+    const aboutBg = document.querySelector('.about-neural-bg');
+    if (!aboutBg) return;
+    
+    window.addEventListener('scroll', function() {
+      const aboutSection = document.getElementById('about');
+      if (!aboutSection) return;
+      
+      const aboutRect = aboutSection.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      
+      if (aboutRect.top < windowHeight && aboutRect.bottom > 0) {
+        const scrollProgress = 1 - (aboutRect.top / windowHeight);
+        aboutBg.style.opacity = Math.min(0.5, scrollProgress * 0.8);
+      }
+    });
+  }
+
+  // Sayfa yüklendiğinde çağrılan başlangıç fonksiyonları
+  animateNetworkBackground();
+  setupAboutBackground();
+
+  // Sayfa yüklendiğinde hash'e göre kaydır
+  if (window.location.hash) {
+    setTimeout(function() {
+      const targetSection = document.querySelector(window.location.hash);
+      if (targetSection) {
+        window.scrollTo({
+          top: targetSection.offsetTop - 100,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
+  }
+  
+  // Hareket eden daire animasyonu için ek stiller ekle
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes movingCircle {
+      0% {
+        transform: translate(-30px, -30px) scale(0.8);
+        opacity: 0.5;
+      }
+      50% {
+        transform: translate(30px, 30px) scale(1.2);
+        opacity: 0.9;
+      }
+      100% {
+        transform: translate(-30px, 30px) scale(0.9);
+        opacity: 0.7;
+      }
+    }
+    
+    .moving-circle {
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--secondary-color) 0%, var(--primary-color) 100%);
+      opacity: 0.8;
+      animation: movingCircle 15s infinite alternate ease-in-out;
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Çözüm detay modalı için olay dinleyicileri ekle
+  document.querySelectorAll('.solution-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const solutionId = this.getAttribute('onclick').match(/'([^']+)'/)[1];
+      showSolutionDetail(solutionId);
+    });
+  });
+  
+  // Tech yazısını siyah yap
+  const techText = document.querySelector('.tech');
+  if (techText) {
+    techText.style.color = '#000000';
+  }
+  
+  // Çözümlerimiz linkine tıklanınca doğru yere kaydır
+  document.querySelectorAll('a[href="#solutions"]').forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const targetSection = document.querySelector('#solutions');
+      if (targetSection) {
+        window.scrollTo({
+          top: targetSection.offsetTop - 100,
+          behavior: 'smooth'
+        });
+      }
+    });
+  });
+
+  // Projelere logo eklemek
+  setupProjectImages();
+
+  // Otomatik kaydırmayı başlat
+  startAutoSlide();
+  
+  // Proje slider'ına mouse ile gelindiğinde otomatik kaydırmayı durdur
+  const projectsSlider = document.querySelector('.projects-slider');
+  if (projectsSlider) {
+    projectsSlider.addEventListener('mouseenter', function() {
+      if (window.autoSlideInterval) {
+        clearInterval(window.autoSlideInterval);
+      }
+    });
+    
+    projectsSlider.addEventListener('mouseleave', function() {
+      startAutoSlide();
+    });
+  }
+});
+
+// Smooth scrolling
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function (e) {
+    e.preventDefault();
+    document.querySelector(this.getAttribute('href')).scrollIntoView({
+      behavior: 'smooth'
+    });
+  });
+
+// Projeler için tıklama olayları
+const projectLinks = document.querySelectorAll('.project-link');
+projectLinks.forEach(link => {
+  link.addEventListener('click', function(e) {
+    // Proje detay sayfası eklendiğinde bu bölüm aktif edilecek
+    // console.log('Proje tıklandı:', link.parentNode.querySelector('.project-title').textContent);
+  });
+});
+
+// Sinir ağı animasyonu efekti
+document.addEventListener('DOMContentLoaded', function() {
+  const neuralNetworkBg = document.querySelector('.neural-network-bg');
+  
+  if (neuralNetworkBg) {
+    window.addEventListener('scroll', function() {
+      const scrollY = window.scrollY;
+      const translateY = scrollY * 0.3; // Scroll hızından daha yavaş hareket etsin
+      
+      neuralNetworkBg.style.transform = `translateY(${translateY}px) rotate(${scrollY * 0.05}deg)`;
+    });
+  }
+
+  // SVG logo için animasyon efektleri
+  document.querySelectorAll('.hero-svg, .nav-logo-svg, .about-logo-overlay').forEach(logo => {
+    if (logo) {
+      logo.addEventListener('load', function() {
+        const svgDoc = this.contentDocument;
+        if (svgDoc) {
+          const paths = svgDoc.querySelectorAll('path');
+          paths.forEach(path => {
+            path.style.transition = 'all 0.5s ease';
+          });
+        }
+      });
+    }
+  });
+
+  // Çözüm kartları hover efektleri
+  const solutionCards = document.querySelectorAll('.solution-card');
+  
+  solutionCards.forEach((card, index) => {
+    card.addEventListener('mouseenter', function() {
+      const icon = this.querySelector('.solution-icon i');
+      icon.classList.add('fa-beat');
+      
+      // Her karta farklı bir animasyon delay ekle
+      setTimeout(() => {
+        icon.classList.remove('fa-beat');
+      }, 800);
+    });
+    
+    card.addEventListener('mouseleave', function() {
+      const icon = this.querySelector('.solution-icon i');
+      icon.classList.remove('fa-beat');
+    });
+  });
+});
+
+// Çözüm detaylarını ekleyelim
+const solutionDetails = {
+  'veri-analizi': {
+    title: "Veri Analizi",
+    description: "Büyük veri kümeleri üzerinde derinlemesine analiz ile kurumunuzun verilerinden değer üretiyoruz. Karmaşık veri setlerini anlamlı içgörülere dönüştürüyor, veri odaklı karar verme süreçlerinizi optimize ediyoruz.",
+    features: [
+      "Büyük veri işleme ve depolama çözümleri",
+      "İleri analitik ve veri madenciliği",
+      "Tahminleme modelleri ve simülasyonlar",
+      "Gerçek zamanlı veri monitörleme"
+    ],
+    benefits: [
+      "Veri tabanlı karar verme süreçlerinde %70'e varan hız artışı",
+      "İş süreçlerinde optimizasyon ve maliyet tasarrufu",
+      "Trendleri önceden tespit etme ve proaktif aksiyon alma",
+      "Müşteri davranışlarında derinlemesine içgörü sağlama"
+    ]
+  },
+  'makine-ogrenmesi': {
+    title: "Makine Öğrenmesi",
+    description: "İşletmenize özel geliştirilmiş makine öğrenmesi algoritmaları ile verimliliği artırıyor, maliyetleri düşürüyor ve rekabet avantajı sağlıyoruz. Yapay zeka destekli karar verme mekanizmaları ile insan hatasını minimuma indiriyoruz.",
+    features: [
+      "Derin öğrenme algoritmaları geliştirme",
+      "Tahmine dayalı analitik modeller",
+      "Desen tanıma ve sınıflandırma",
+      "Öğrenen sistemler ve sürekli iyileştirme"
+    ],
+    benefits: [
+      "Operasyonel verimlilikte %45'e varan artış",
+      "Tekrarlayan süreçlerdeki hata oranlarında %90 azalma",
+      "Kaynak kullanımında optimizasyon",
+      "Gerçek zamanlı veri akışlarında dinamik karar alma"
+    ]
+  },
+  'bilgisayarli-goru': {
+    title: "Bilgisayarlı Görü",
+    description: "Görüntü ve video işleme teknolojileri ile nesneleri, yüzleri, metinleri ve hareketleri tanımlayabilen sistemler geliştiriyoruz. Kalite kontrol, güvenlik, varlık yönetimi gibi alanlarda maliyet tasarrufu sağlayan çözümler sunuyoruz.",
+    features: [
+      "Nesne tanıma ve tespit algoritmaları",
+      "Yüz tanıma ve duygu analizi",
+      "Hareket algılama ve takip sistemleri",
+      "OCR (Optik Karakter Tanıma) çözümleri"
+    ],
+    benefits: [
+      "Kalite kontrol süreçlerinde %85 hız artışı",
+      "Güvenlik yönetiminde 7/24 otomasyon",
+      "İnsan kaynaklı hataların önlenmesi",
+      "Fiziksel süreçlerin dijitalleştirilmesi"
+    ]
+  },
+  'dogal-dil-isleme': {
+    title: "Doğal Dil İşleme",
+    description: "İnsan dilini anlama, işleme ve üretme yeteneğine sahip yapay zeka çözümleri geliştiriyoruz. Müşteri iletişimlerinden, sosyal medya analizine kadar metin ve konuşma temelli verileri analiz ederek değerli bilgiler çıkarıyoruz.",
+    features: [
+      "Metin analizi ve sınıflandırma",
+      "Duygu analizi ve sentiment ölçümü",
+      "Chatbot ve sesli asistan geliştirme",
+      "Metin özetleme ve içerik üretimi"
+    ],
+    benefits: [
+      "Müşteri hizmetlerinde %60 verimlilik artışı",
+      "Pazar ve sosyal medya analizlerinde derinlemesine içgörü",
+      "24/7 müşteri desteği sağlama",
+      "İçerik üretim süreçlerinde otomasyon"
+    ]
+  },
+  'otomasyon-cozumleri': {
+    title: "Otomasyon Çözümleri",
+    description: "İş süreçlerinizi yapay zeka destekli otomasyon çözümleri ile optimize ediyoruz. Hem basit tekrarlayan görevleri hem de karmaşık karar verme süreçlerini otomatikleştirerek zamandan ve maliyetten tasarruf sağlıyoruz.",
+    features: [
+      "Robotik Süreç Otomasyonu (RPA)",
+      "İş akışı otomasyonu ve süreç yönetimi",
+      "Akıllı doküman işleme ve veri çıkarma",
+      "Sosyal medya ve e-posta otomasyonları",
+      "Satış ve pazarlama süreçleri otomasyonu",
+      "Finans ve muhasebe operasyonları otomasyonu",
+      "İK süreçleri ve işe alım otomasyonu"
+    ],
+    benefits: [
+      "Manuel işlerde %75'e varan zaman tasarrufu",
+      "İşgücü maliyetlerinde %35-50 azalma",
+      "7/24 kesintisiz operasyon imkanı",
+      "Hata oranlarında %95'e varan düşüş",
+      "Ölçeklenebilir büyüme imkanı",
+      "Çalışan memnuniyetinde artış",
+      "Müşteri deneyiminde tutarlılık ve iyileşme"
+    ]
+  },
+  'ozel-ai-cozumleri': {
+    title: "Özel AI Çözümleri ve Proje Geliştirme",
+    description: "İşletmenizin benzersiz ihtiyaçlarına özel tasarlanmış yapay zeka çözümleri geliştiriyoruz. Problem tanımından, çözüm tasarımı ve uygulamaya kadar tüm aşamalarda yanınızdayız.",
+    features: [
+      "Özel algoritma tasarımı ve geliştirme",
+      "Mevcut sistemlere AI entegrasyonu",
+      "Bulut tabanlı çözümler ve API servisleri",
+      "Uçtan uca AI projesi yönetimi",
+      "Performans izleme ve sürekli iyileştirme"
+    ],
+    benefits: [
+      "Rekabet avantajı ve pazar farklılaşması",
+      "İşletmeye özel problemlere odaklanmış çözümler",
+      "Hızlı uygulama ve değer üretme",
+      "Geleceğe dönük ölçeklenebilir mimari",
+      "Sürekli iyileştirme ve destek"
+    ]
+  }
+};
+
+// Çözüm detayını gösteren fonksiyon
+function showSolutionDetail(solutionId) {
+  const solution = solutionDetails[solutionId];
+  if (!solution) return;
+  
+  const modal = document.getElementById('solution-detail-modal');
+  const modalContent = document.getElementById('solution-detail-content');
+  
+  // Modal içeriğini hazırla
+  let content = `
+    <div class="solution-detail-header" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); padding: 30px; border-radius: 10px 10px 0 0; color: white; margin: -20px -20px 30px -20px;">
+      <h2 style="font-size: 2.5rem; margin-bottom: 15px;">${solution.title}</h2>
+      <p style="font-size: 1.2rem; opacity: 0.9;">${solution.description}</p>
+    </div>
+    
+    <div class="solution-detail-content" style="padding: 0 10px;">
+      <div class="solution-features-section" style="margin-bottom: 35px;">
+        <h3 style="font-size: 1.8rem; color: var(--primary-color); margin-bottom: 20px; border-bottom: 2px solid var(--secondary-color); padding-bottom: 10px; display: inline-block;">Özellikler</h3>
+        <ul style="list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+          ${solution.features.map(feature => `
+            <li style="padding: 15px; background: rgba(138, 43, 226, 0.05); border-radius: 10px; border-left: 4px solid var(--primary-color); display: flex; align-items: center;">
+              <i class="fas fa-check-circle" style="color: var(--primary-color); margin-right: 12px; font-size: 1.2rem;"></i>
+              <span>${feature}</span>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+      
+      <div class="solution-benefits-section" style="margin-bottom: 35px;">
+        <h3 style="font-size: 1.8rem; color: var(--primary-color); margin-bottom: 20px; border-bottom: 2px solid var(--secondary-color); padding-bottom: 10px; display: inline-block;">Faydalar</h3>
+        <ul style="list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+          ${solution.benefits.map(benefit => `
+            <li style="padding: 15px; background: rgba(0, 229, 255, 0.05); border-radius: 10px; border-left: 4px solid var(--secondary-color); display: flex; align-items: center;">
+              <i class="fas fa-star" style="color: var(--secondary-color); margin-right: 12px; font-size: 1.2rem;"></i>
+              <span>${benefit}</span>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+      
+      <div class="solution-cta" style="background: linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(0, 229, 255, 0.1)); padding: 30px; border-radius: 10px; text-align: center; margin: 20px 0;">
+        <h3 style="margin-bottom: 15px; color: var(--primary-color);">Bu çözüm hakkında daha fazla bilgi almak ister misiniz?</h3>
+        <p style="margin-bottom: 20px;">Uzman ekibimiz size özel bir sunum hazırlamak için bekliyor.</p>
+        <a href="#contact" class="btn" onclick="document.getElementById('solution-detail-modal').style.display='none';" style="font-size: 1rem; padding: 12px 25px;">Bizimle İletişime Geçin</a>
+      </div>
+    </div>
+  `;
+  
+  // Modal içeriğini güncelle ve göster
+  modalContent.innerHTML = content;
+  modal.style.display = 'block';
+  
+  // Modal kapatma işlemleri
+  const closeModal = document.querySelector('.close-modal');
+  closeModal.onclick = function() {
+    modal.style.display = 'none';
+  }
+  
+  // Dışarıya tıklandığında modal kapanması
+  window.onclick = function(event) {
+    if (event.target == modal) {
+      modal.style.display = 'none';
+    }
+  }
+  
+  // ESC tuşuna basınca modal kapanması
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && modal.style.display === 'block') {
+      modal.style.display = 'none';
+    }
+  });
+}
+
+// Projelere logo eklemek
+function setupProjectImages() {
+  console.log('Proje resimleri kontrol ediliyor...');
+  const projectImages = document.querySelectorAll('.project-card img');
+  
+  projectImages.forEach(img => {
+    // Hata işleme ekleyelim
+    img.onerror = function() {
+      console.log('Resim yüklenemedi, logo ekleniyor:', img.alt);
+      replaceWithLogo(img);
+    };
+    
+    // Zaten yüklenmiş resimleri kontrol et
+    if (img.complete) {
+      if (img.naturalHeight === 0 || img.naturalWidth === 0) {
+        console.log('Eksik boyutlu resim tespit edildi, logo ekleniyor:', img.alt);
+        replaceWithLogo(img);
+      }
+    } else {
+      // Henüz yüklenmemiş resimler için load event ekle
+      img.addEventListener('load', function() {
+        if (this.naturalHeight === 0 || this.naturalWidth === 0) {
+          console.log('Yüklenen resim geçersiz, logo ekleniyor:', img.alt);
+          replaceWithLogo(this);
+        }
+      });
+    }
+  });
+  
+  // 10. proje için getProjectData'ya veri ekleyelim
+  projectData["project10"] = {
+    title: "Otomatik İçerik Oluşturma ve Sosyal Medya Otomasyonu",
+    image: "images/projects/project10.jpg",
+    client: "Çeşitli Kurumsal Müşteriler",
+    date: "2025",
+    category: "Otomasyon, Yapay Zeka, İçerik Üretimi",
+    description: `
+      <p>Kurumsal müşterilerimiz için geliştirdiğimiz yapay zeka tabanlı içerik oluşturma ve sosyal medya yönetim sistemi, pazarlama süreçlerini otomatikleştirerek zaman ve kaynak tasarrufu sağlıyor.</p>
+      <p>Bu kapsamlı otomasyon platformu şunları içeriyor:</p>
+      <ul>
+        <li><strong>Otomatik LinkedIn Paylaşımları:</strong> Şirket haberlerinden, sektör trendlerine ve başarı hikayelerine kadar çeşitli konularda profesyonel LinkedIn paylaşımları oluşturur ve belirli aralıklarla otomatik olarak paylaşır.</li>
+        <li><strong>Kişiselleştirilmiş E-mail Kampanyaları:</strong> Hedef kitleye özel, kişiselleştirilmiş e-mail içerikleri oluşturur ve gönderim zamanlamasını optimize eder.</li>
+        <li><strong>Çok Platformlu Sosyal Medya Yönetimi:</strong> Instagram, Twitter, Facebook gibi platformlar için içerik önerilerinde bulunur ve sosyal medya takvimini düzenler.</li>
+        <li><strong>İçerik Performans Analizi:</strong> Paylaşımların etkileşim oranlarını analiz ederek gelecekteki içerik stratejileri için öneriler sunar.</li>
+        <li><strong>SEO Optimizasyonu:</strong> Oluşturulan içeriklerde anahtar kelime kullanımını ve SEO uyumluluğunu sağlar.</li>
+      </ul>
+    `,
+    results: [
+      { number: "78%", text: "Pazarlama Ekibi Verimliliği Artışı" },
+      { number: "320+", text: "Aylık Otomatik İçerik Üretimi" },
+      { number: "64%", text: "Sosyal Medya Etkileşiminde Artış" },
+      { number: "41%", text: "E-mail Açılma Oranında İyileşme" }
+    ]
+  };
+}
+
+// Resim yerine logo koyma fonksiyonu
+function replaceWithLogo(img) {
+  img.src = 'duftech-logo-final.svg';
+  img.style.background = 'white';
+  img.style.padding = '20px';
+  img.style.objectFit = 'contain';
+}
+
+// Modal kapama işlemleri için event listener'lar
+document.addEventListener('DOMContentLoaded', function() {
+  // Modal kapatma düğmelerini ayarla
+  document.querySelectorAll('.close-modal').forEach(button => {
+    button.addEventListener('click', function() {
+      this.closest('.project-modal').style.display = 'none';
+    });
+  });
+  
+  // Modal dışına tıklanınca kapatma
+  window.addEventListener('click', function(event) {
+    if (event.target.classList.contains('project-modal')) {
+      event.target.style.display = 'none';
+    }
+  });
+});
+
+// Form mesajını gösterme
+function showFormMessage(message, type) {
+  const messageContainer = document.createElement('div');
+  messageContainer.className = `form-message ${type}`;
+  messageContainer.style.padding = '15px';
+  messageContainer.style.borderRadius = '5px';
+  messageContainer.style.marginBottom = '20px';
+  messageContainer.style.animation = 'fadeIn 0.5s ease-in-out';
+  
+  if(type === 'success') {
+    messageContainer.style.backgroundColor = 'rgba(76, 175, 80, 0.1)';
+    messageContainer.style.color = '#4CAF50';
+    messageContainer.style.border = '1px solid #4CAF50';
+  } else {
+    messageContainer.style.backgroundColor = 'rgba(244, 67, 54, 0.1)';
+    messageContainer.style.color = '#F44336';
+    messageContainer.style.border = '1px solid #F44336';
+  }
+  
+  messageContainer.innerText = message;
+  
+  const form = document.getElementById('contact-form');
+  form.parentNode.insertBefore(messageContainer, form);
+  
+  // 5 saniye sonra mesajı kaldır
+  setTimeout(() => {
+    messageContainer.style.animation = 'fadeOut 0.5s ease-in-out';
+    messageContainer.addEventListener('animationend', () => {
+      messageContainer.remove();
+    });
+  }, 5000);
+}
+
+// Projeler arası geçiş için navigasyon fonksiyonu
+window.navigateProjects = function(direction) {
+  const slider = document.querySelector('.projects-slider');
+  const projectWidth = document.querySelector('.project-card').offsetWidth + 30; // Kart genişliği + margin
+  const currentScroll = slider.scrollLeft;
+  
+  // Kaydırma yönünü belirle
+  if (direction === 'next') {
+    slider.scrollTo({
+      left: currentScroll + projectWidth * 3,
+      behavior: 'smooth'
+    });
+  } else {
+    slider.scrollTo({
+      left: currentScroll - projectWidth * 3,
+      behavior: 'smooth'
+    });
+  }
+  
+  // Otomatik kaydırmayı durdur ve 5 saniye sonra yeniden başlat
+  if (window.autoSlideInterval) {
+    clearInterval(window.autoSlideInterval);
+    setTimeout(() => {
+      startAutoSlide();
+    }, 5000);
+  }
+};
+
+// Otomatik kaydırma işlevini başlat
+function startAutoSlide() {
+  const slider = document.querySelector('.projects-slider');
+  if (!slider) return;
+  
+  window.autoSlideInterval = setInterval(() => {
+    const projectWidth = document.querySelector('.project-card').offsetWidth + 30;
+    const currentScroll = slider.scrollLeft;
+    const maxScroll = slider.scrollWidth - slider.clientWidth;
+    
+    if (currentScroll >= maxScroll - 10) {
+      // Başa dön
+      slider.scrollTo({
+        left: 0,
+        behavior: 'smooth'
+      });
+    } else {
+      // İleri kaydır
+      slider.scrollTo({
+        left: currentScroll + projectWidth,
+        behavior: 'smooth'
+      });
+    }
+  }, 3000); // 3 saniyede bir otomatik kaydır
+} 

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sayfa Bulunamadı - DUFTech</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .error-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+    }
+    .error-code {
+      font-size: 8rem;
+      font-weight: 700;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1rem;
+    }
+    .error-message {
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      color: var(--dark);
+    }
+    .error-text {
+      font-size: 1.2rem;
+      color: #666;
+      max-width: 600px;
+      margin-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="error-container">
+    <div class="error-code">404</div>
+    <h1 class="error-message">Sayfa Bulunamadı</h1>
+    <p class="error-text">Aradığınız sayfa mevcut değil veya başka bir adrese taşınmış olabilir. Ana sayfaya dönmek için aşağıdaki butona tıklayabilirsiniz.</p>
+    <a href="/" class="btn">Ana Sayfaya Dön</a>
+  </div>
+</body>
+</html> 
