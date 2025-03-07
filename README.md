@@ -17,15 +17,7 @@ DUFTech kurumsal web sitesi, yapay zeka danışmanlık ve çözümleri sunan fir
 - **İletişim Formu**: Potansiyel müşteriler için iletişim imkanı
 - **Animasyonlar**: Modern ve çekici kullanıcı deneyimi için özel animasyonlar
 
-## 🖥️ Ekran Görüntüleri
 
-<div align="center">
-  <img src="https://via.placeholder.com/400x200?text=Ana+Sayfa" alt="Ana Sayfa" width="400"/>
-  <img src="https://via.placeholder.com/400x200?text=Çözümlerimiz" alt="Çözümlerimiz" width="400"/>
-  <br/>
-  <img src="https://via.placeholder.com/400x200?text=Projelerimiz" alt="Projelerimiz" width="400"/>
-  <img src="https://via.placeholder.com/400x200?text=İletişim" alt="İletişim" width="400"/>
-</div>
 
 ## 🚀 Kurulum
 
